@@ -13,8 +13,8 @@ from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandl
 
 logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    level=logging.INFO,
-)
+    level=logging.INFO,)
+logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger("marbothgxbot")
 TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 
