@@ -1,9 +1,8 @@
-import base64
-import hashlib
-import hmac
 import io
 import logging
 import os
+import re
+from urllib.parse import parse_qs, urlparse
 
 import zxingcpp
 from PIL import Image, UnidentifiedImageError
@@ -13,16 +12,27 @@ from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandl
 
 logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    level=logging.INFO,)
+    level=logging.INFO,
+)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger("marbothgxbot")
 TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 
 
 def secret_code(payload: str) -> str:
-    """Create a stable, opaque code for the QR payload using the bot token as key."""
-    digest = hmac.new(TOKEN.encode(), payload.strip().encode(), hashlib.sha256).digest()
-    return base64.b32encode(digest).decode("ascii").rstrip("=")[:12]
+    """Ambil secret Base32 16 karakter dari payload QR TOTP."""
+    value = payload.strip()
+    if value.lower().startswith("otpauth://"):
+        parsed = urlparse(value)
+        secrets = parse_qs(parsed.query).get("secret", [])
+        if not secrets:
+            raise ValueError("QR tidak berisi secret TOTP.")
+        value = secrets[0]
+
+    secret = "".join(value.split()).rstrip("=").upper()
+    if not re.fullmatch(r"[A-Z2-7]{16}", secret):
+        raise ValueError("Secret QR harus berupa Base32 16 karakter.")
+    return secret
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -56,7 +66,13 @@ async def read_qr(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await message.reply_text("QR tidak ditemukan. Coba kirim gambar yang lebih jelas.")
         return
 
-    await message.reply_text("Secret code: " + secret_code(results[0].text))
+    try:
+        code = secret_code(results[0].text)
+    except ValueError as exc:
+        await message.reply_text(str(exc))
+        return
+
+    await message.reply_text("Secret code: " + code)
 
 
 def main() -> None:
