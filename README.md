@@ -1,14 +1,17 @@
-# @marbothgxbot: GitHub + Apps Script + Google Sheets
+# @marbothgxbot — bot QR di FadeHost
 
-Telegram sends QR photos to an Apps Script webhook. Apps Script calls the QR decoder on Cloud Run, creates a secret code, replies in Telegram, and stores the timestamp, chat ID, and code in a `Hasil QR` Google Sheets tab. The original QR contents are not stored.
+Bot ini memakai polling Telegram. Kirim foto QR ke https://t.me/marbothgxbot, lalu bot membalas secret code. Komputer Anda tidak perlu menyala. Kode bot ada di bot.py dan dependensinya di requirements.txt.
 
 ## Deploy
 
-1. Push this repository to a private GitHub repo. Configure GitHub Actions with Google Cloud Workload Identity Federation. Required GitHub Actions secrets: `GCP_WIF_PROVIDER`, `GCP_SERVICE_ACCOUNT`, `GCP_RUNTIME_SERVICE_ACCOUNT`, and `GCP_PROJECT_ID`.
-2. In Google Cloud, create a Secret Manager secret named `marbothgxbot-decoder-key` and grant the decoder runtime service account `roles/secretmanager.secretAccessor`. The secret value must match the `DECODER_SHARED_KEY` you enter in Apps Script.
-3. Run the `Deploy QR decoder` workflow. Copy the Cloud Run service URL and append `/decode`. Cloud Run is configured with zero minimum and one maximum instance. It has a monthly free tier, but Google Cloud requires billing and over-quota or related service usage can cost money.
-4. Create a Google Sheet, open **Extensions → Apps Script**, and copy `apps_script/Code.gs` into its script project. Deploy as a Web App, executing as you and accessible to anyone.
-5. Run `setupBot()` from the bound script and enter the Telegram token, decoder URL, decoder key, webhook key, and HMAC key. Then run `installWebhook()`.
-6. Message [@marbothgxbot](https://t.me/marbothgxbot) with `/start`, then send a QR image.
+1. Di FadeHost, buka Bots → Host a bot → Telegram bot.
+2. Pilih Your own repository, hubungkan GitHub bila diminta, lalu pilih repo privat ini dan branch main.
+3. Pilih paket gratis untuk bot polling. Runtime Python seharusnya terdeteksi dari requirements.txt; perintah mulai python bot.py.
+4. Isi hanya TELEGRAM_BOT_TOKEN dengan token dari BotFather di panel FadeHost. Jangan simpan token di GitHub atau kirim lewat chat.
+5. Deploy, lalu kirim /start dan foto QR untuk memastikan bot membalas.
 
-Keep tokens and keys out of GitHub source. Store the decoder key in Google Secret Manager and Apps Script Script Properties.
+FadeHost menyebut satu bot pertama gratis, polling always-on, dan 256 MB RAM untuk paket gratis. Detail paket dan ketersediaan dapat berubah; pastikan paket yang dipilih memang gratis sebelum deploy.
+
+Secret code adalah HMAC deterministik: QR yang sama menghasilkan kode yang sama selama token bot tidak diganti. QR asli dan hasilnya tidak disimpan. Google Sheets dan Apps Script yang dibuat sebelumnya tidak diperlukan untuk menjalankan versi bot ini.
+
+Folder apps_script/ dan decoder/ adalah rancangan Cloud Run lama dan tidak dipakai oleh deploy FadeHost.
